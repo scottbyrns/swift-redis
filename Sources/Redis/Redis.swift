@@ -8,10 +8,10 @@ import Foundation
 
 public class Redis {
 
-	public var context : redisContext
+	public var context : HiRedis.redisContext
 	public var error : String?
 
-	public init (context : redisContext) {
+	public init (context : HiRedis.redisContext) {
 
 		self.context = context
 
@@ -20,20 +20,20 @@ public class Redis {
 
 	public init (host : String, port: Int) {
 
-		context = redisConnect(ip: host, port: port)
+		context = HiRedis.connectToRedis(ip: host, port: port)
 
 	}
 
-	public func command(command: String, args: CVarArg ...) -> redisReply? {
+	public func command(command: String, args: CVarArg ...) -> HiRedis.redisReply? {
 		let result = withVaList(args) { args in
-			return redisCommandWithArguments(context: context, command: command, args: args)
+			return HiRedis.redisCommandWithArguments(context: context, command: command, args: args)
 		}
 		error = context.errstr
 		return result
 	}
 
 	public func issue (command command : Command, withArguments commandArguments: CommandArguments) -> String? {
-		var result: redisReply?;
+		var result: HiRedis.redisReply?;
 		let commandString = command.rawValue
 		switch commandArguments {
 		// MARK: String commands

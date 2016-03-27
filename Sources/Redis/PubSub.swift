@@ -10,15 +10,15 @@ public class PubSub {
 	}
 
 	public func subscribeSync(toChannel channel : String, handleWith callback : (message: String) -> ()) {
-		redisSubscribeSync(context: redis.context, toChannel: channel, handleWith: callback)
+		HiRedis.redisSubscribeSync(context: redis.context, toChannel: channel, handleWith: callback)
 	}
 
 	public func unsubscribeSync(channel : String) {
-		redisUnsubscribeSync(context: redis.context, fromChannel: channel)
+		HiRedis.redisUnsubscribeSync(context: redis.context, fromChannel: channel)
 	}
 
 	public func publishSync(message message: String, toChannel channel : String) {
-		redisPublishSync(context: redis.context, message: message, toChannel: channel)
+		HiRedis.redisPublishSync(context: redis.context, message: message, toChannel: channel)
 	}
 
 }

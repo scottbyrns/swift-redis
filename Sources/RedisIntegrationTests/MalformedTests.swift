@@ -2,7 +2,7 @@ final class MalformedCommandTests: XCTestCase {
   func testThatMalformedCommandsReturnNil() {
     "HELLO WORLD".withCString { b in
       // print(b)
-      let reply = redisCommand(context: newContext(), command: "SET key %ll", args: b)
+      let reply = HiRedis.redisCommand(context: newContext(), command: "SET key %ll", args: b)
       XCTAssertNil(reply)
     }
 
@@ -16,7 +16,7 @@ final class MalformedCommandTests: XCTestCase {
 
 final class MalformedContextTests: XCTestCase {
   func testThatUnreachableContextsAreNotCreatable() {
-    let ctx = redisConnect(ip: "THIS IS NOT AN IP", port: 65000)
+    let ctx = HiRedis.connectToRedis(ip: "THIS IS NOT AN IP", port: 65000)
     XCTAssertNotNil(ctx.errstr)
 
   }

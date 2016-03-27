@@ -22,7 +22,7 @@ final class PubSubTest: XCTestCase {
     let pubsub = PubSub(redis: context)
 
     pubsub.publishSync(message:"Test", toChannel: "testThatWeCanSendMessages")
-    
+
   }
   static var allTests: [(String, PubSubTest -> () throws -> Void)] {
     return [
