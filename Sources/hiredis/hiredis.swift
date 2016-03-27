@@ -1,8 +1,72 @@
 import CHiRedis
+import HiRedisAsync
 import Foundation
 
 public class HiRedis {
   // MARK: hiredis wrapper types
+  public final class redisAsyncContext {
+    private let cContext: UnsafeMutablePointer<HiRedisAsync.redisAsyncContext>
+    private init(cContext: UnsafeMutablePointer<HiRedisAsync.redisAsyncContext>) {
+      self.cContext = cContext
+    }
+
+    deinit {
+      redisAsyncFree(cContext)
+    }
+
+    /// Error flags, 0 when there is no error
+    public var err: Int32 {
+      return cContext.pointee.err
+    }
+
+    /// String representation of error when applicable
+    public var errstr: String? {
+      return withUnsafePointer(&cContext.pointee.errstr) { b in
+        let str = String(cString:UnsafePointer(b))
+        if str == "" {
+          return nil
+        }
+        return str
+      }
+    }
+
+
+    //
+    // var fd: Int32 {
+    //   return cContext.pointee.fd
+    // }
+    //
+    // var flags: Int32 {
+    //   return cContext.pointee.flags
+    // }
+    //
+    // /// Write buffer
+    // var obuf: UnsafeMutablePointer<CChar> {
+    //   return cContext.pointee.obuf
+    // }
+    //
+    // /// Protocol reader
+    // var reader: UnsafeMutablePointer<CHiRedis.redisReader> {
+    //   return cContext.pointee.reader
+    // }
+  }
+//typedef void (redisCallbackFn)(struct redisAsyncContext*, void*, void*)
+  // public final class redisCallback {
+  //   // struct redisCallback *next; /* simple singly linked list */
+  //   // redisCallbackFn *fn;
+  //   // void *privdata;
+  //   private let privdata : UnsafeMutablePointer<Void> = nil
+  //   private let fn : UnsafeMutablePointer<redisCallbackFn> = nil
+  //   private let next: UnsafeMutablePointer<redisCallback> = nil
+  //
+  //   init (next: next, fn: fn, privdata: privdata) {
+  //     self.next = next
+  //     self.fn = fn
+  //     self.privdata = privdata
+  //   }
+  //
+  // }
+
   public final class redisContext {
     private let cContext: UnsafeMutablePointer<CHiRedis.redisContext>
     private init(cContext: UnsafeMutablePointer<CHiRedis.redisContext>) {
@@ -179,52 +243,129 @@ public class HiRedis {
     }
   }
 
+  public static func redisAsyncCommand(context context: redisAsyncContext, command: String, args: CVarArg ...) {
+    withVaList(args) { args in
+
+      let privdata : UnsafeMutablePointer<Void> = nil
+      // let redisCallbackFn : (UnsafeMutablePointer<HiRedisAsync.redisAsyncContext>, UnsafeMutablePointer<Void>, UnsafeMutablePointer<Void>) -> Void =
+
+      redisvAsyncCommand(context.cContext, {
+        (redisAsyncContext: UnsafeMutablePointer<HiRedisAsync.redisAsyncContext>, reply: UnsafeMutablePointer<Void>, _privdata: UnsafeMutablePointer<Void>) -> Void in
+        print("Callback")
+
+        print(reply)
+        // print(privdata)
+        print(_privdata)
+        // handler(message: "Test")
+
+      }, privdata, command, args)
+    }
+  }
+
   static var subscriptions : Array<String> = []
 
-  public static func redisSubscribeSync(context context: redisContext, toChannel channel: String, handleWith handler: (message: String) -> (), args: CVarArg ...) {
-    withVaList(args) { args in
+    public static func redisSubscribeSync(context context: redisContext, toChannel channel: String, handleWith handler: (message: String) -> (), args: CVarArg ...) {
+      withVaList(args) { args in
 
-      let subscribeReply = UnsafeMutablePointer<CHiRedis.redisReply>(redisvCommand(context.cContext, "SUBSCRIBE \(channel)", args))
-      freeReplyObject(subscribeReply)
+        let subscribeReply = UnsafeMutablePointer<CHiRedis.redisReply>(redisvCommand(context.cContext, "SUBSCRIBE \(channel)", args))
+        freeReplyObject(subscribeReply)
 
-      subscriptions.append(channel)
+        subscriptions.append(channel)
 
-      var reply : UnsafeMutablePointer<Void> = nil
+        var reply : UnsafeMutablePointer<Void> = nil
 
-      while subscriptions.contains(channel) && redisGetReply(context.cContext, &reply) == 0 /*REDIS_OK*/ {
-          let response = NSString(string: String(cString:context.reader.pointee.buf))
+        while subscriptions.contains(channel) && redisGetReply(context.cContext, &reply) == 0 /*REDIS_OK*/ {
+            let response = NSString(string: String(cString:context.reader.pointee.buf))
 
-          let resultParts = response.componentsSeparatedByString("\r\n")
-          let message = resultParts[resultParts.count - 2]
-          handler(message: message)
+            let resultParts = response.componentsSeparatedByString("\r\n")
+            let message = resultParts[resultParts.count - 2]
+            handler(message: message)
 
-          freeReplyObject(reply)
+            freeReplyObject(reply)
+        }
+
+      }
+    }
+
+
+      public static func redisSubscribeAsync(context context: redisAsyncContext, toChannel channel: String, handleWith handler: (message: String) -> (), args: CVarArg ...) {
+        withVaList(args) { args in
+
+          let privdata : UnsafeMutablePointer<Void> = nil
+          // let redisCallbackFn : (UnsafeMutablePointer<HiRedisAsync.redisAsyncContext>, UnsafeMutablePointer<Void>, UnsafeMutablePointer<Void>) -> Void =
+
+          redisvAsyncCommand(context.cContext, {
+            (redisAsyncContext: UnsafeMutablePointer<HiRedisAsync.redisAsyncContext>, reply: UnsafeMutablePointer<Void>, _privdata: UnsafeMutablePointer<Void>) -> Void in
+            print("Callback")
+
+            print(reply)
+            // print(privdata)
+            print(_privdata)
+            // handler(message: "Test")
+
+          }, privdata, "SUBSCRIBE \(channel)", args)
+        }
       }
 
-    }
-  }
 
 
-  public static func redisPublishSync(context context: redisContext, message: String, toChannel channel: String, args: CVarArg ...) {
-    withVaList(args) { args in
 
-      let subscribeReply = UnsafeMutablePointer<CHiRedis.redisReply>(redisvCommand(context.cContext, "PUBLISH \(channel) \(message)", args))
-      freeReplyObject(subscribeReply)
+      public static func redisPublishSync(context context: redisContext, message: String, toChannel channel: String, args: CVarArg ...) {
+        withVaList(args) { args in
 
-    }
-  }
+          let subscribeReply = UnsafeMutablePointer<CHiRedis.redisReply>(redisvCommand(context.cContext, "PUBLISH \(channel) \(message)", args))
+          freeReplyObject(subscribeReply)
+
+        }
+      }
 
 
-  public static func redisUnsubscribeSync(context context: redisContext, fromChannel channel: String, args: CVarArg ...) {
-    withVaList(args) { args in
+      public static func redisPublishAsync(context context: redisAsyncContext, message: String, toChannel channel: String, args: CVarArg ...) {
+        withVaList(args) { args in
 
-      let subscribeReply = UnsafeMutablePointer<CHiRedis.redisReply>(redisvCommand(context.cContext, "UNSUBSCRIBE \(channel)", args))
-      freeReplyObject(subscribeReply)
+          let privdata : UnsafeMutablePointer<Void> = nil
+          redisvAsyncCommand(context.cContext, {
+            (redisAsyncContext: UnsafeMutablePointer<HiRedisAsync.redisAsyncContext>, reply: UnsafeMutablePointer<Void>, privdata: UnsafeMutablePointer<Void>) -> Void in
+            print("Callback")
 
-      subscriptions = subscriptions.filter {$0 != channel}
+            print(reply)
+            print(privdata)
+            // handler(message: "Test")
 
-    }
-  }
+          }, privdata, "PUBLISH \(channel) \(message)", args)
+
+        }
+      }
+
+
+      public static func redisUnsubscribeSync(context context: redisContext, fromChannel channel: String, args: CVarArg ...) {
+        withVaList(args) { args in
+
+          let subscribeReply = UnsafeMutablePointer<CHiRedis.redisReply>(redisvCommand(context.cContext, "UNSUBSCRIBE \(channel)", args))
+          freeReplyObject(subscribeReply)
+
+          subscriptions = subscriptions.filter {$0 != channel}
+
+        }
+      }
+
+
+      public static func redisUnsubscribeAsync(context context: redisAsyncContext, fromChannel channel: String, args: CVarArg ...) {
+        withVaList(args) { args in
+
+          let privdata : UnsafeMutablePointer<Void> = nil
+          redisvAsyncCommand(context.cContext, {
+            (redisAsyncContext: UnsafeMutablePointer<HiRedisAsync.redisAsyncContext>, reply: UnsafeMutablePointer<Void>, privdata: UnsafeMutablePointer<Void>) -> Void in
+            print("Callback")
+
+            print(reply)
+            print(privdata)
+            // handler(message: "Test")
+
+          }, privdata, "UNSUBSCRIBE \(channel)", args)
+
+        }
+      }
 
 
   public static func redisCommandWithArguments(context context: redisContext, command: String, args: CVaListPointer) -> redisReply? {
@@ -233,6 +374,10 @@ public class HiRedis {
 
   public static func connectToRedis(ip ip: String, port: Int) -> redisContext {
     return HiRedis.redisContext(cContext: redisConnect(ip, Int32(port)))
+  }
+
+  public static func connectToRedisAsync(ip ip: String, port: Int) -> redisAsyncContext {
+    return HiRedis.redisAsyncContext(cContext: redisAsyncConnect(ip, Int32(port)))
   }
 
 }

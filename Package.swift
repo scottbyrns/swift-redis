@@ -11,9 +11,10 @@ let package = Package(
         name: "Redis",
         dependencies: [.Target(name: "hiredis")]
       ),
-      Target(name: "hiredis")
+      Target(name: "hiredis"),
+      Target(name: "HiRedisAsync"),
     ],
     dependencies: [
-        .Package(url: "https://github.com/swizzlr/CHiRedis.git", majorVersion: 1),
+        .Package(url: "https://github.com/scottbyrns/CHiRedis.git", majorVersion: 2),
     ]
 )

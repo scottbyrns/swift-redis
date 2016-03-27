@@ -3,7 +3,7 @@ import XCTest
 
 final class GetSetTest: XCTestCase {
 
-  let context: Redis = Redis(context: newContext())
+  let context: Redis = Redis(host: Environment.IP, port: Environment.Port)
 
   func testThatWeCanGet() {
     let reply = context.issue(command: .SET, withArguments: .SET("testThatWeCanGet", "success"))

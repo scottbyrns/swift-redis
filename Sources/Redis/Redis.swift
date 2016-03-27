@@ -9,18 +9,20 @@ import Foundation
 public class Redis {
 
 	public var context : HiRedis.redisContext
+	public var asyncContext : HiRedis.redisAsyncContext
 	public var error : String?
 
-	public init (context : HiRedis.redisContext) {
-
-		self.context = context
-
-	}
+	// public init (context : HiRedis.redisContext) {
+	//
+	// 	self.context = context
+	//
+	// }
 
 
 	public init (host : String, port: Int) {
 
 		context = HiRedis.connectToRedis(ip: host, port: port)
+		asyncContext = HiRedis.connectToRedisAsync(ip: host, port: port)
 
 	}
 
@@ -31,6 +33,8 @@ public class Redis {
 		error = context.errstr
 		return result
 	}
+
+	
 
 	public func issue (command command : Command, withArguments commandArguments: CommandArguments) -> String? {
 		var result: HiRedis.redisReply?;

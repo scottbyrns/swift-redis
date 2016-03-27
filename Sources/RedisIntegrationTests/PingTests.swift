@@ -3,7 +3,7 @@ import XCTest
 
 final class PingTests: XCTestCase {
 
-  let context: Redis = Redis(context: newContext())
+  let context: Redis = Redis(host: Environment.IP, port: Environment.Port)
 
   func testThatWeCanConnect() {
     XCTAssertNil(context.error)
